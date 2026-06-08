@@ -1,0 +1,20 @@
+{
+    "author": ["datvt"],
+    "install_msg": "Ops Core installed. Use `[p]opscore debug config` to verify.",
+    "name": "OpsCore",
+    "short": "Discord moderation & operations system — Approval Queue, Tickets, Quarantine.",
+    "description": "A comprehensive Discord operations cog providing role approval workflows, a branched ticket system with transcript archival, and one-click user quarantine with role snapshots.",
+    "end_user_data_statement": "This cog stores guild-level operational data including user IDs associated with tickets, approval requests, and quarantine cases.",
+    "tags": [
+        "moderation",
+        "tickets",
+        "approval",
+        "quarantine",
+        "operations"
+    ],
+    "min_bot_version": "3.5.0",
+    "min_python_version": [3, 11, 0],
+    "requirements": [],
+    "disabled": false,
+    "type": "COG"
+}
