@@ -21,6 +21,7 @@ from ..constants import (
     COLOUR_PRIMARY,
     COLOUR_TICKET_OPEN,
     COLOUR_TICKET_CLOSED,
+    COLOUR_DANGER,
     TICKET_TYPES,
     COG_NAME,
     COG_VERSION,
@@ -225,6 +226,77 @@ def build_support_panel_embed() -> discord.Embed:
     )
     embed.set_footer(text=f"{COG_NAME} v{COG_VERSION} • Tickets")
     return embed
+
+# ---------------------------------------------------------------------------
+# Admin Control Panel
+# ---------------------------------------------------------------------------
+
+def build_admin_panel_embed() -> discord.Embed:
+    """Build the persistent Admin Control Panel embed."""
+    embed = discord.Embed(
+        title="\u26a0\ufe0f  Admin Control Panel",
+        description=(
+            "Use the buttons below to perform administrative actions on this server.\n\n"
+            "**One-Click Quarantine:**\n"
+            "Instantly strip all manageable roles below the bot's hierarchy from a user, "
+            "apply the Quarantine role, and save a snapshot of their original roles for "
+            "later restoration.\n\n"
+            "**Restore User:**\n"
+            "Re-apply a quarantined user's original roles and remove the Quarantine role."
+        ),
+        colour=COLOUR_DANGER,
+    )
+    embed.set_footer(text=f"{COG_NAME} v{COG_VERSION} • Admin Panel")
+    return embed
+
+# ---------------------------------------------------------------------------
+# Quarantine Log Embed
+# ---------------------------------------------------------------------------
+
+def build_quarantine_log_embed(case_data: dict, action: str) -> discord.Embed:
+    """Build the log embed for a quarantine or restore action.
+    
+    action: "quarantine" or "restore"
+    """
+    is_quarantine = action == "quarantine"
+    
+    title = f"\u26a0\ufe0f Quarantine Applied — {case_data['case_id']}" if is_quarantine else f"\u2705 Quarantine Restored — {case_data['case_id']}"
+    colour = COLOUR_DANGER if is_quarantine else COLOUR_APPROVED
+    
+    timestamp = case_data.get("restored_at") if not is_quarantine and case_data.get("restored_at") else case_data["created_at"]
+    
+    embed = discord.Embed(
+        title=title,
+        colour=colour,
+        timestamp=datetime.fromisoformat(timestamp)
+    )
+    
+    target_id = case_data["user_id"]
+    actor_id = case_data["created_by"] if is_quarantine else case_data.get("restored_by", "Unknown")
+    
+    embed.add_field(name="Target User", value=f"<@{target_id}> (`{target_id}`)", inline=True)
+    embed.add_field(name="Action By", value=f"<@{actor_id}> (`{actor_id}`)", inline=True)
+    embed.add_field(name="Reason/Notes", value=case_data.get("reason") or case_data.get("notes") or "None", inline=False)
+    
+    if is_quarantine:
+        removed = " ".join(f"<@&{r}>" for r in case_data.get("removed_role_ids", [])) or "None"
+        skipped = " ".join(f"<@&{r}>" for r in case_data.get("skipped_role_ids", [])) or "None"
+        embed.add_field(name="Roles Removed", value=removed, inline=False)
+        if case_data.get("skipped_role_ids"):
+            embed.add_field(name="Roles Skipped (Unmanageable)", value=skipped, inline=False)
+    else:
+        status = case_data.get("status")
+        if status == "partially_restored":
+            failures = case_data.get("restore_failures", [])
+            embed.add_field(name="Status", value="\u26a0\ufe0f Partially Restored", inline=False)
+            if failures:
+                fail_str = "\n".join(f"<@&{f['role_id']}>: {f['reason']}" for f in failures)
+                embed.add_field(name="Failed Roles", value=fail_str, inline=False)
+        else:
+            embed.add_field(name="Status", value="\u2705 Fully Restored", inline=False)
+
+    return embed
+
 
 
 def build_ticket_info_embed(ticket_data: dict, guild: discord.Guild) -> discord.Embed:

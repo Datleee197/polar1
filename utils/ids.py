@@ -5,7 +5,7 @@ ops_core.utils.ids
 Deterministic ID generation for operational records.
 """
 
-from ..constants import APPROVAL_ID_PREFIX, TICKET_ID_PREFIX
+from ..constants import APPROVAL_ID_PREFIX, TICKET_ID_PREFIX, QUAR_ID_PREFIX
 
 
 def next_approval_id(existing_requests: dict) -> str:
@@ -72,3 +72,35 @@ def next_ticket_id(existing_tickets: dict) -> str:
             continue
 
     return f"{TICKET_ID_PREFIX}-{max_num + 1:06d}"
+
+def next_quarantine_id(existing_cases: dict) -> str:
+    """Return the next sequential quarantine case ID.
+
+    Scans existing case keys (e.g. ``QUAR-000003``) and returns
+    the next one in sequence. If no cases exist, starts at
+    ``QUAR-000001``.
+
+    Parameters
+    ----------
+    existing_cases:
+        The current ``quarantine_cases`` dict from guild Config.
+
+    Returns
+    -------
+    str
+        A string like ``QUAR-000042``.
+    """
+    if not existing_cases:
+        return f"{QUAR_ID_PREFIX}-000001"
+
+    max_num = 0
+    for key in existing_cases:
+        try:
+            num = int(key.split("-", 1)[1])
+            if num > max_num:
+                max_num = num
+        except (IndexError, ValueError):
+            continue
+
+    return f"{QUAR_ID_PREFIX}-{max_num + 1:06d}"
+

@@ -9,8 +9,9 @@ All default config values, version info, and namespace prefixes live here.
 # ---------------------------------------------------------------------------
 # Cog metadata
 # ---------------------------------------------------------------------------
-COG_NAME = "OpsCore"
-COG_VERSION = "0.3.0"
+COG_NAME = "Ops Core"
+COG_VERSION = "0.4.0"
+COG_AUTHOR = "Ops Core Team"
 COG_IDENTIFIER = 2738100538  # Unique Red Config identifier (random stable int)
 
 # ---------------------------------------------------------------------------
@@ -28,6 +29,11 @@ APPROVAL_ID_PREFIX = "APPROVAL"
 # ---------------------------------------------------------------------------
 TICKET_ID_PREFIX = "TICKET"
 
+# ---------------------------------------------------------------------------
+# Quarantine System constants
+# ---------------------------------------------------------------------------
+QUAR_ID_PREFIX = "QUAR"
+
 TICKET_TYPES = {
     "report":  {"label": "Report Violation", "emoji": "\U0001f6a8", "staff": "mod_role_ids"},
     "bug":     {"label": "Report System Bug", "emoji": "\U0001f41b", "staff": "dev_role_ids"},
@@ -44,6 +50,7 @@ COLOUR_APPROVED = 0x57F287  # Green
 COLOUR_DENIED = 0xED4245    # Red
 COLOUR_TICKET_OPEN = 0x5865F2 # Blurple
 COLOUR_TICKET_CLOSED = 0x95A5A6 # Grey
+COLOUR_DANGER = 0xED4245    # Red (used for quarantine and destructive actions)
 
 # ---------------------------------------------------------------------------
 # Default guild configuration schema
@@ -55,13 +62,16 @@ DEFAULT_GUILD = {
     "approval_review_channel_id": None,
     "admin_log_channel_id": None,
 
-    # Quarantine
-    "quarantine_role_id": None,
-
     # Staff / role groups
     "staff_role_ids": [],
     "dev_role_ids": [],
-    "mod_role_ids": [],
+    "mod_role_ids": [],               # list of int role IDs
+
+    # --------------------------------------------------------------
+    # Quarantine Configuration
+    # --------------------------------------------------------------
+    "quarantine_role_id": None,       # int
+    "quarantine_category_id": None,   # int
 
     # Approval role options  (key -> role_id mapping set by admin)
     "approval_role_options": {},

@@ -21,10 +21,11 @@ from redbot.core import Config, commands
 from redbot.core.bot import Red
 
 from .constants import COG_IDENTIFIER, COG_NAME, COG_VERSION, COLOUR_PRIMARY, DEFAULT_GUILD
-from .services import approval_service, ticket_service
-from .utils.embeds import build_approval_panel_embed, build_support_panel_embed
+from .services import approval_service, ticket_service, quarantine_service
+from .utils.embeds import build_approval_panel_embed, build_support_panel_embed, build_admin_panel_embed
 from .views.approval_views import ApprovalPanelView, ApprovalReviewView
 from .views.ticket_views import SupportPanelView, TicketCloseView
+from .views.quarantine_views import AdminPanelView
 from .views.core_views import DatabaseWipeConfirmView
 
 if TYPE_CHECKING:
@@ -63,6 +64,7 @@ class OpsCore(commands.Cog):
         # 1. Static panel views — one registration covers all guilds
         self.bot.add_view(ApprovalPanelView(config=self.config))
         self.bot.add_view(SupportPanelView(config=self.config))
+        self.bot.add_view(AdminPanelView(config=self.config, bot=self.bot))
 
         # 2. Re-register dynamic views for pending requests & open tickets
         all_guilds = await self.config.all_guilds()
@@ -205,6 +207,22 @@ class OpsCore(commands.Cog):
             else:
                 await ctx.send(f"\u2139\ufe0f {role.mention} is already in moderator roles.")
 
+    @opscore_set.command(name="quarantinerole")
+    @commands.admin_or_permissions(administrator=True)
+    async def set_quarantine_role(self, ctx: commands.Context, role: discord.Role) -> None:
+        """Set the role to apply when a user is quarantined."""
+        await self.config.guild(ctx.guild).quarantine_role_id.set(role.id)
+        await ctx.send(f"\u2705 Quarantine role set to {role.mention}.")
+        log.info("Guild %s: quarantine_role_id set to %s", ctx.guild.id, role.id)
+
+    @opscore_set.command(name="quarantinecategory")
+    @commands.admin_or_permissions(administrator=True)
+    async def set_quarantine_category(self, ctx: commands.Context, category: discord.CategoryChannel) -> None:
+        """Set the category where quarantine case channels are created."""
+        await self.config.guild(ctx.guild).quarantine_category_id.set(category.id)
+        await ctx.send(f"\u2705 Quarantine category set to **{category.name}**.")
+        log.info("Guild %s: quarantine_category_id set to %s", ctx.guild.id, category.id)
+
     def _format_role_list(self, guild: discord.Guild, role_ids: list[int]) -> str:
         """Helper to format a list of role IDs."""
         if not role_ids:
@@ -264,6 +282,24 @@ class OpsCore(commands.Cog):
         """List configured moderator roles."""
         role_ids = await self.config.guild(ctx.guild).mod_role_ids()
         await ctx.send(f"**Moderator Roles:** {self._format_role_list(ctx.guild, role_ids)}")
+
+    @opscore_list.command(name="quarantine")
+    @commands.admin_or_permissions(administrator=True)
+    async def list_quarantine(self, ctx: commands.Context) -> None:
+        """List active quarantine cases."""
+        cases = await self.config.guild(ctx.guild).quarantine_cases()
+        active_cases = [c for c in cases.values() if c["status"] in ("active", "partially_restored")]
+        if not active_cases:
+            await ctx.send("\u2705 No active quarantine cases.")
+            return
+
+        lines = []
+        for c in active_cases:
+            quarantined_users = c.get("quarantined_users", {})
+            active_users = sum(1 for u in quarantined_users.values() if u["status"] in ("active", "partially_restored", "failed"))
+            lines.append(f"**{c['case_id']}** - {active_users} active user(s) ({c['status']})")
+            
+        await ctx.send("\u26a0\ufe0f **Active Quarantine Cases**\n" + "\n".join(lines))
 
     # ==================================================================
     # Sub-group:  [p]opscore remove
@@ -368,6 +404,16 @@ class OpsCore(commands.Cog):
         await self.config.guild(ctx.guild).mod_role_ids.set([])
         await ctx.send("\u2705 Cleared all moderator roles.")
 
+    @opscore_clear.command(name="quarantinecases")
+    @commands.admin_or_permissions(administrator=True)
+    async def clear_quarantine_cases(self, ctx: commands.Context, confirm: str = "") -> None:
+        """Clear all quarantine cases from the database. Requires 'confirm' argument."""
+        if confirm.lower() != "confirm":
+            await ctx.send("\u26a0\ufe0f To clear all quarantine cases, you must run: `[p]opscore clear quarantinecases confirm`")
+            return
+        await self.config.guild(ctx.guild).quarantine_cases.set({})
+        await ctx.send("\u2705 Cleared all quarantine cases.")
+
 
     # ==================================================================
     # Sub-group:  [p]opscore panel
@@ -405,10 +451,10 @@ class OpsCore(commands.Cog):
         except (discord.Forbidden, discord.HTTPException):
             pass
 
-    @opscore_panel.command(name="support")
+    @opscore_panel.command(name="ticket")
     @commands.admin_or_permissions(administrator=True)
-    async def panel_support(self, ctx: commands.Context) -> None:
-        """Deploy the public Support Panel in this channel."""
+    async def panel_ticket(self, ctx: commands.Context) -> None:
+        """Deploy the public Ticket Panel in this channel."""
         embed = build_support_panel_embed()
         view = SupportPanelView(config=self.config)
 
@@ -423,6 +469,24 @@ class OpsCore(commands.Cog):
         except (discord.Forbidden, discord.HTTPException):
             pass
 
+
+    @opscore_panel.command(name="quarantine")
+    @commands.admin_or_permissions(administrator=True)
+    async def panel_quarantine(self, ctx: commands.Context) -> None:
+        """Deploy the persistent Quarantine Control Panel."""
+        embed = build_admin_panel_embed()
+        view = AdminPanelView(config=self.config, bot=self.bot)
+
+        msg = await ctx.send(embed=embed, view=view)
+
+        async with self.config.guild(ctx.guild).panel_messages() as panels:
+            panels["admin_panel"] = msg.id
+
+        log.info("Guild %s: Admin panel deployed in #%s", ctx.guild.id, ctx.channel.name)
+        try:
+            await ctx.message.delete()
+        except (discord.Forbidden, discord.HTTPException):
+            pass
 
     # ==================================================================
     # Sub-group:  [p]opscore docs
@@ -439,7 +503,8 @@ class OpsCore(commands.Cog):
                 "**Available topics:**\n"
                 "\u2022 `[p]opscore docs core` — Core configuration guide\n"
                 "\u2022 `[p]opscore docs approval` — Approval Queue workflow\n"
-                "\u2022 `[p]opscore docs ticket` — Ticket System workflow\n\n"
+                "\u2022 `[p]opscore docs ticket` — Ticket System workflow\n"
+                "\u2022 `[p]opscore docs quarantine` — Quarantine workflow\n\n"
                 "**Other commands:**\n"
                 "\u2022 `[p]help opscore` — Full command syntax reference\n"
                 "\u2022 `[p]opscore debug version` — Current version\n"
@@ -453,7 +518,7 @@ class OpsCore(commands.Cog):
                 "\u2705 **Stage 00** — Cog Skeleton\n"
                 "\u2705 **Stage 01** — Approval Queue\n"
                 "\u2705 **Stage 02** — Ticket System\n"
-                "\u23f3 **Stage 03** — Quarantine *(planned)*"
+                "\u2705 **Stage 03** — Quarantine"
             ),
             inline=False,
         )
@@ -466,7 +531,7 @@ class OpsCore(commands.Cog):
         """Show the Core Ops Core setup guide."""
         setup_embed = discord.Embed(
             title="\u2699\ufe0f  Ops Core — Core Setup Guide",
-            description="These configurations are shared across multiple Ops Core modules (like Tickets and future Quarantine).",
+            description="These configurations are shared across multiple Ops Core modules (like Tickets and Quarantine).",
             colour=COLOUR_PRIMARY,
         )
         setup_embed.add_field(
@@ -482,6 +547,11 @@ class OpsCore(commands.Cog):
         setup_embed.add_field(
             name="Step 3 — Manage roles",
             value="```\n[p]opscore list ticketroles\n[p]opscore remove staffrole @Staff\n[p]opscore clear modroles confirm\n```",
+            inline=False,
+        )
+        setup_embed.add_field(
+            name="Step 4 — Database Reset",
+            value="```\n[p]opscore clear database\n```\nSpawns an interactive view to totally wipe all data for the server.",
             inline=False,
         )
         setup_embed.set_footer(text=f"{COG_NAME} v{COG_VERSION} • Core")
@@ -548,7 +618,7 @@ class OpsCore(commands.Cog):
         )
         setup_embed.add_field(
             name="Step 2 — Deploy the panel",
-            value="```\n[p]opscore panel support\n```",
+            value="```\n[p]opscore panel ticket\n```",
             inline=False,
         )
         setup_embed.add_field(
@@ -577,16 +647,83 @@ class OpsCore(commands.Cog):
 
         await ctx.send(embeds=[setup_embed, flow_embed])
 
+    @opscore_docs.command(name="quarantine")
+    @commands.admin_or_permissions(administrator=True)
+    async def docs_quarantine(self, ctx: commands.Context) -> None:
+        """Show the Quarantine workflow and setup guide."""
+        setup_embed = discord.Embed(
+            title="\u26a0\ufe0f  Quarantine — Setup Guide",
+            description="Follow these steps to configure Case-Based Quarantine.",
+            colour=COLOUR_PRIMARY,
+        )
+        setup_embed.add_field(
+            name="Step 1 — Set the category",
+            value="```\n[p]opscore set quarantinecategory \"Incident Response\"\n```",
+            inline=False,
+        )
+        setup_embed.add_field(
+            name="Step 2 — Set the quarantine role",
+            value="```\n[p]opscore set quarantinerole @Quarantined\n```",
+            inline=False,
+        )
+        setup_embed.add_field(
+            name="Step 3 — Deploy the panel",
+            value="```\n[p]opscore panel quarantine\n```",
+            inline=False,
+        )
+        setup_embed.set_footer(text=f"{COG_NAME} v{COG_VERSION} • Quarantine")
+
+        flow_embed = discord.Embed(
+            title="\U0001f504  Quarantine — Workflow",
+            description="How case-based isolation and restoration flows.",
+            colour=COLOUR_PRIMARY,
+        )
+        flow_embed.add_field(
+            name="Quarantine User(s)",
+            value="1\ufe0f\u20e3 Staff clicks Quarantine\n2\ufe0f\u20e3 Enter user ID, reason, and an optional Case ID\n3\ufe0f\u20e3 Channel created (or reused if Case ID given)\n4\ufe0f\u20e3 Roles snapshotted & stripped",
+            inline=True,
+        )
+        flow_embed.add_field(
+            name="Restore User(s)",
+            value="1\ufe0f\u20e3 Staff clicks Restore\n2\ufe0f\u20e3 Enter Case ID (restore all) or User ID (restore one)\n3\ufe0f\u20e3 Roles are perfectly restored\n4\ufe0f\u20e3 Case closed & channel locked",
+            inline=True,
+        )
+        flow_embed.set_footer(text=f"{COG_NAME} v{COG_VERSION} • Quarantine")
+
+        await ctx.send(embeds=[setup_embed, flow_embed])
+
 
     # ==================================================================
     # Sub-group:  [p]opscore debug
     # ==================================================================
 
-    @opscore.group(name="debug", invoke_without_command=True)
-    @commands.admin_or_permissions(administrator=True)
+    @opscore.group(name="debug")
+    @commands.is_owner()
     async def opscore_debug(self, ctx: commands.Context) -> None:
-        """Debugging utilities for Ops Core."""
-        await ctx.send_help(ctx.command)
+        """Debug and low-level diagnostic commands."""
+        pass
+
+    @opscore_debug.command(name="wipe")
+    async def debug_wipe(self, ctx: commands.Context) -> None:
+        """Clear all Ops Core data for this server. (Owner only)"""
+        await self.config.guild(ctx.guild).clear()
+        await ctx.send("\u26a0\ufe0f All Ops Core data wiped for this server.")
+
+    @opscore_debug.command(name="quarantine")
+    async def debug_quarantine(self, ctx: commands.Context, case_id: str) -> None:
+        """Print the raw JSON for a specific quarantine case."""
+        cases = await self.config.guild(ctx.guild).quarantine_cases()
+        if case_id.upper() not in cases:
+            await ctx.send("\u274c Case not found.")
+            return
+
+        import json
+        case_data = cases[case_id.upper()]
+        dumped = json.dumps(case_data, indent=2)
+        if len(dumped) > 1900:
+            await ctx.send(f"```json\n{dumped[:1900]}...\n```")
+        else:
+            await ctx.send(f"```json\n{dumped}\n```")
 
     @opscore_debug.command(name="config")
     @commands.admin_or_permissions(administrator=True)
