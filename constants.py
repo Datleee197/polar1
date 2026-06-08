@@ -10,7 +10,7 @@ All default config values, version info, and namespace prefixes live here.
 # Cog metadata
 # ---------------------------------------------------------------------------
 COG_NAME = "OpsCore"
-COG_VERSION = "0.2.0"
+COG_VERSION = "0.3.0"
 COG_IDENTIFIER = 2738100538  # Unique Red Config identifier (random stable int)
 
 # ---------------------------------------------------------------------------
@@ -24,12 +24,26 @@ CUSTOM_ID_PREFIX = "ops_core"
 APPROVAL_ID_PREFIX = "APPROVAL"
 
 # ---------------------------------------------------------------------------
+# Ticket System constants
+# ---------------------------------------------------------------------------
+TICKET_ID_PREFIX = "TICKET"
+
+TICKET_TYPES = {
+    "report":  {"label": "Report Violation", "emoji": "\U0001f6a8", "staff": "mod_role_ids"},
+    "bug":     {"label": "Report System Bug", "emoji": "\U0001f41b", "staff": "dev_role_ids"},
+    "appeal":  {"label": "Appeal", "emoji": "\u2696\ufe0f", "staff": "mod_role_ids"},
+    "other":   {"label": "Other", "emoji": "\U0001f4ac", "staff": "staff_role_ids"},
+}
+
+# ---------------------------------------------------------------------------
 # Embed colours
 # ---------------------------------------------------------------------------
 COLOUR_PRIMARY = 0x5865F2   # Discord blurple
 COLOUR_PENDING = 0xFEE75C   # Yellow
 COLOUR_APPROVED = 0x57F287  # Green
 COLOUR_DENIED = 0xED4245    # Red
+COLOUR_TICKET_OPEN = 0x5865F2 # Blurple
+COLOUR_TICKET_CLOSED = 0x95A5A6 # Grey
 
 # ---------------------------------------------------------------------------
 # Default guild configuration schema

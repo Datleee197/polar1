@@ -19,6 +19,9 @@ from ..constants import (
     COLOUR_DENIED,
     COLOUR_PENDING,
     COLOUR_PRIMARY,
+    COLOUR_TICKET_OPEN,
+    COLOUR_TICKET_CLOSED,
+    TICKET_TYPES,
     COG_NAME,
     COG_VERSION,
 )
@@ -200,3 +203,109 @@ def build_dm_embed(
     )
     embed.set_footer(text=f"{COG_NAME} • {guild_name}")
     return embed
+
+
+# ===========================================================================
+# TICKET SYSTEM EMBEDS
+# ===========================================================================
+
+def build_support_panel_embed() -> discord.Embed:
+    """Build the public-facing support panel embed."""
+    embed = discord.Embed(
+        title="\U0001f3ab  Support & Tickets",
+        description=(
+            "Need assistance? Select a ticket type from the dropdown below to contact staff.\n\n"
+            "**Available options:**\n"
+            f"\u2022 {TICKET_TYPES['report']['emoji']}  **{TICKET_TYPES['report']['label']}** — Report a user breaking the rules.\n"
+            f"\u2022 {TICKET_TYPES['bug']['emoji']}  **{TICKET_TYPES['bug']['label']}** — Report an issue with the bot or server.\n"
+            f"\u2022 {TICKET_TYPES['appeal']['emoji']}  **{TICKET_TYPES['appeal']['label']}** — Appeal a moderation action.\n"
+            f"\u2022 {TICKET_TYPES['other']['emoji']}  **{TICKET_TYPES['other']['label']}** — General inquiries and support."
+        ),
+        colour=COLOUR_PRIMARY,
+    )
+    embed.set_footer(text=f"{COG_NAME} v{COG_VERSION} • Tickets")
+    return embed
+
+
+def build_ticket_info_embed(ticket_data: dict, guild: discord.Guild) -> discord.Embed:
+    """Build the info embed posted at the top of a new ticket space."""
+    ticket_type_key = ticket_data["ticket_type"]
+    type_info = TICKET_TYPES.get(ticket_type_key, TICKET_TYPES["other"])
+    
+    status = ticket_data.get("status", "open")
+    colour = COLOUR_TICKET_OPEN if status == "open" else COLOUR_TICKET_CLOSED
+    
+    embed = discord.Embed(
+        title=f"{type_info['emoji']}  {type_info['label']} — {ticket_data['ticket_id']}",
+        colour=colour,
+        timestamp=datetime.fromisoformat(ticket_data["created_at"]),
+    )
+    embed.add_field(
+        name="User",
+        value=f"<@{ticket_data['user_id']}>",
+        inline=True,
+    )
+    embed.add_field(
+        name="Status",
+        value=f"`{status.upper()}`",
+        inline=True,
+    )
+    
+    # Render form fields dynamically
+    form_data = ticket_data.get("form_data", {})
+    if form_data:
+        embed.add_field(name="\u200b", value="**--- Ticket Details ---**", inline=False)
+        for field_name, field_value in form_data.items():
+            if field_value:
+                embed.add_field(name=field_name, value=field_value, inline=False)
+
+    if status == "closed":
+        embed.add_field(name="\u200b", value="**--- Resolution ---**", inline=False)
+        embed.add_field(
+            name="Closed By",
+            value=f"<@{ticket_data['closed_by']}>",
+            inline=True,
+        )
+        if ticket_data.get("closed_at"):
+            closed_dt = datetime.fromisoformat(ticket_data["closed_at"])
+            embed.add_field(
+                name="Closed At",
+                value=discord.utils.format_dt(closed_dt, style="F"),
+                inline=True,
+            )
+
+    embed.set_footer(text=f"{COG_NAME} • Tickets")
+    return embed
+
+
+def build_ticket_log_embed(ticket_data: dict, action: str, admin: discord.Member | discord.User) -> discord.Embed:
+    """Build a compact log embed for ticket actions."""
+    ticket_type_key = ticket_data["ticket_type"]
+    type_info = TICKET_TYPES.get(ticket_type_key, TICKET_TYPES["other"])
+    
+    colour = COLOUR_TICKET_CLOSED if action == "closed" else COLOUR_TICKET_OPEN
+    emoji = "\U0001f512" if action == "closed" else "\U0001f3ab"
+
+    embed = discord.Embed(
+        title=f"{emoji}  Ticket {action.capitalize()} — {ticket_data['ticket_id']}",
+        colour=colour,
+        timestamp=datetime.now(tz=timezone.utc),
+    )
+    embed.add_field(
+        name="User",
+        value=f"<@{ticket_data['user_id']}>",
+        inline=True,
+    )
+    embed.add_field(
+        name="Type",
+        value=f"{type_info['label']}",
+        inline=True,
+    )
+    embed.add_field(
+        name="Admin",
+        value=f"{admin.mention}",
+        inline=True,
+    )
+    embed.set_footer(text=f"{COG_NAME} • Log")
+    return embed
+
