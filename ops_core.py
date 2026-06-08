@@ -117,7 +117,7 @@ class OpsCore(commands.Cog):
 
     @commands.group(name="opscore", invoke_without_command=True)
     @commands.guild_only()
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def opscore(self, ctx: commands.Context) -> None:
         """Ops Core — Discord operations system."""
         await ctx.send_help(ctx.command)
@@ -127,13 +127,13 @@ class OpsCore(commands.Cog):
     # ==================================================================
 
     @opscore.group(name="set", invoke_without_command=True)
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def opscore_set(self, ctx: commands.Context) -> None:
         """Configure Ops Core settings."""
         await ctx.send_help(ctx.command)
 
     @opscore_set.command(name="approvalchannel")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def set_approval_channel(self, ctx: commands.Context, channel: discord.TextChannel) -> None:
         """Set the channel where approval review embeds are posted."""
         await self.config.guild(ctx.guild).approval_review_channel_id.set(channel.id)
@@ -141,7 +141,7 @@ class OpsCore(commands.Cog):
         log.info("Guild %s: approval_review_channel_id set to %s", ctx.guild.id, channel.id)
 
     @opscore_set.command(name="logchannel")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def set_log_channel(self, ctx: commands.Context, channel: discord.TextChannel) -> None:
         """Set the admin log channel (optional)."""
         await self.config.guild(ctx.guild).admin_log_channel_id.set(channel.id)
@@ -149,7 +149,7 @@ class OpsCore(commands.Cog):
         log.info("Guild %s: admin_log_channel_id set to %s", ctx.guild.id, channel.id)
 
     @opscore_set.command(name="approvalrole")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def set_approval_role(self, ctx: commands.Context, key: str, role: discord.Role) -> None:
         """Map a role key to a Discord role for the approval queue."""
         key = key.strip().lower()
@@ -159,7 +159,7 @@ class OpsCore(commands.Cog):
         log.info("Guild %s: approval_role_options[%s] = %s", ctx.guild.id, key, role.id)
 
     @opscore_set.command(name="supportchannel")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def set_support_channel(self, ctx: commands.Context, channel: discord.TextChannel) -> None:
         """Set the default support channel (for fallback/reference)."""
         await self.config.guild(ctx.guild).support_channel_id.set(channel.id)
@@ -167,7 +167,7 @@ class OpsCore(commands.Cog):
         log.info("Guild %s: support_channel_id set to %s", ctx.guild.id, channel.id)
 
     @opscore_set.command(name="archivechannel")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def set_archive_channel(self, ctx: commands.Context, channel: discord.TextChannel) -> None:
         """Set the channel where ticket transcripts are sent."""
         await self.config.guild(ctx.guild).ticket_archive_channel_id.set(channel.id)
@@ -175,7 +175,7 @@ class OpsCore(commands.Cog):
         log.info("Guild %s: ticket_archive_channel_id set to %s", ctx.guild.id, channel.id)
 
     @opscore_set.command(name="staffrole")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def set_staff_role(self, ctx: commands.Context, role: discord.Role) -> None:
         """Add a role to the general staff group."""
         async with self.config.guild(ctx.guild).staff_role_ids() as roles:
@@ -186,7 +186,7 @@ class OpsCore(commands.Cog):
                 await ctx.send(f"\u2139\ufe0f {role.mention} is already in staff roles.")
 
     @opscore_set.command(name="devrole")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def set_dev_role(self, ctx: commands.Context, role: discord.Role) -> None:
         """Add a role to the developer group."""
         async with self.config.guild(ctx.guild).dev_role_ids() as roles:
@@ -197,7 +197,7 @@ class OpsCore(commands.Cog):
                 await ctx.send(f"\u2139\ufe0f {role.mention} is already in developer roles.")
 
     @opscore_set.command(name="modrole")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def set_mod_role(self, ctx: commands.Context, role: discord.Role) -> None:
         """Add a role to the moderator group."""
         async with self.config.guild(ctx.guild).mod_role_ids() as roles:
@@ -208,7 +208,7 @@ class OpsCore(commands.Cog):
                 await ctx.send(f"\u2139\ufe0f {role.mention} is already in moderator roles.")
 
     @opscore_set.command(name="quarantinerole")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def set_quarantine_role(self, ctx: commands.Context, role: discord.Role) -> None:
         """Set the role to apply when a user is quarantined."""
         await self.config.guild(ctx.guild).quarantine_role_id.set(role.id)
@@ -216,7 +216,7 @@ class OpsCore(commands.Cog):
         log.info("Guild %s: quarantine_role_id set to %s", ctx.guild.id, role.id)
 
     @opscore_set.command(name="quarantinecategory")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def set_quarantine_category(self, ctx: commands.Context, category: discord.CategoryChannel) -> None:
         """Set the category where quarantine case channels are created."""
         await self.config.guild(ctx.guild).quarantine_category_id.set(category.id)
@@ -241,13 +241,13 @@ class OpsCore(commands.Cog):
     # ==================================================================
     
     @opscore.group(name="list", invoke_without_command=True)
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def opscore_list(self, ctx: commands.Context) -> None:
         """List Ops Core configurations."""
         await ctx.send_help(ctx.command)
         
     @opscore_list.command(name="ticketroles")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def list_ticketroles(self, ctx: commands.Context) -> None:
         """List all configured ticket staff, dev, and mod roles."""
         guild_data = await self.config.guild(ctx.guild).all()
@@ -263,28 +263,28 @@ class OpsCore(commands.Cog):
         await ctx.send(embed=embed)
 
     @opscore_list.command(name="staffroles")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def list_staffroles(self, ctx: commands.Context) -> None:
         """List configured general staff roles."""
         role_ids = await self.config.guild(ctx.guild).staff_role_ids()
         await ctx.send(f"**Staff Roles:** {self._format_role_list(ctx.guild, role_ids)}")
 
     @opscore_list.command(name="devroles")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def list_devroles(self, ctx: commands.Context) -> None:
         """List configured developer roles."""
         role_ids = await self.config.guild(ctx.guild).dev_role_ids()
         await ctx.send(f"**Developer Roles:** {self._format_role_list(ctx.guild, role_ids)}")
 
     @opscore_list.command(name="modroles")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def list_modroles(self, ctx: commands.Context) -> None:
         """List configured moderator roles."""
         role_ids = await self.config.guild(ctx.guild).mod_role_ids()
         await ctx.send(f"**Moderator Roles:** {self._format_role_list(ctx.guild, role_ids)}")
 
     @opscore_list.command(name="quarantine")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def list_quarantine(self, ctx: commands.Context) -> None:
         """List active quarantine cases."""
         cases = await self.config.guild(ctx.guild).quarantine_cases()
@@ -306,13 +306,13 @@ class OpsCore(commands.Cog):
     # ==================================================================
 
     @opscore.group(name="remove", invoke_without_command=True)
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def opscore_remove(self, ctx: commands.Context) -> None:
         """Remove Ops Core role configurations."""
         await ctx.send_help(ctx.command)
 
     @opscore_remove.command(name="staffrole")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def remove_staff_role(self, ctx: commands.Context, role: discord.Role | int) -> None:
         """Remove a role from the general staff group. Accepts role mention or ID."""
         r_id = role.id if isinstance(role, discord.Role) else role
@@ -324,7 +324,7 @@ class OpsCore(commands.Cog):
                 await ctx.send(f"\u274c Role ID {r_id} is not in the staff roles list.")
 
     @opscore_remove.command(name="devrole")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def remove_dev_role(self, ctx: commands.Context, role: discord.Role | int) -> None:
         """Remove a role from the developer group. Accepts role mention or ID."""
         r_id = role.id if isinstance(role, discord.Role) else role
@@ -336,7 +336,7 @@ class OpsCore(commands.Cog):
                 await ctx.send(f"\u274c Role ID {r_id} is not in the developer roles list.")
 
     @opscore_remove.command(name="modrole")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def remove_mod_role(self, ctx: commands.Context, role: discord.Role | int) -> None:
         """Remove a role from the moderator group. Accepts role mention or ID."""
         r_id = role.id if isinstance(role, discord.Role) else role
@@ -353,13 +353,13 @@ class OpsCore(commands.Cog):
     # ==================================================================
 
     @opscore.group(name="clear", invoke_without_command=True)
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def opscore_clear(self, ctx: commands.Context) -> None:
         """Clear Ops Core configurations."""
         await ctx.send_help(ctx.command)
 
     @opscore_clear.command(name="database")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def clear_database(self, ctx: commands.Context) -> None:
         """Completely wipe ALL Ops Core configurations and data for this server."""
         view = DatabaseWipeConfirmView(config=self.config, author_id=ctx.author.id)
@@ -375,7 +375,7 @@ class OpsCore(commands.Cog):
         await ctx.send(embed=embed, view=view)
 
     @opscore_clear.command(name="staffroles")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def clear_staff_roles(self, ctx: commands.Context, confirm: str = "") -> None:
         """Clear the general staff role list. Requires 'confirm' argument."""
         if confirm.lower() != "confirm":
@@ -385,7 +385,7 @@ class OpsCore(commands.Cog):
         await ctx.send("\u2705 Cleared all staff roles.")
 
     @opscore_clear.command(name="devroles")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def clear_dev_roles(self, ctx: commands.Context, confirm: str = "") -> None:
         """Clear the developer role list. Requires 'confirm' argument."""
         if confirm.lower() != "confirm":
@@ -395,7 +395,7 @@ class OpsCore(commands.Cog):
         await ctx.send("\u2705 Cleared all developer roles.")
 
     @opscore_clear.command(name="modroles")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def clear_mod_roles(self, ctx: commands.Context, confirm: str = "") -> None:
         """Clear the moderator role list. Requires 'confirm' argument."""
         if confirm.lower() != "confirm":
@@ -405,7 +405,7 @@ class OpsCore(commands.Cog):
         await ctx.send("\u2705 Cleared all moderator roles.")
 
     @opscore_clear.command(name="quarantinecases")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def clear_quarantine_cases(self, ctx: commands.Context, confirm: str = "") -> None:
         """Clear all quarantine cases from the database. Requires 'confirm' argument."""
         if confirm.lower() != "confirm":
@@ -420,13 +420,13 @@ class OpsCore(commands.Cog):
     # ==================================================================
 
     @opscore.group(name="panel", invoke_without_command=True)
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def opscore_panel(self, ctx: commands.Context) -> None:
         """Deploy operational panels."""
         await ctx.send_help(ctx.command)
 
     @opscore_panel.command(name="approval")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def panel_approval(self, ctx: commands.Context) -> None:
         """Deploy the public Approval Queue panel in this channel."""
         review_ch_id = await self.config.guild(ctx.guild).approval_review_channel_id()
@@ -452,7 +452,7 @@ class OpsCore(commands.Cog):
             pass
 
     @opscore_panel.command(name="ticket")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def panel_ticket(self, ctx: commands.Context) -> None:
         """Deploy the public Ticket Panel in this channel."""
         embed = build_support_panel_embed()
@@ -471,7 +471,7 @@ class OpsCore(commands.Cog):
 
 
     @opscore_panel.command(name="quarantine")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def panel_quarantine(self, ctx: commands.Context) -> None:
         """Deploy the persistent Quarantine Control Panel."""
         embed = build_admin_panel_embed()
@@ -493,7 +493,7 @@ class OpsCore(commands.Cog):
     # ==================================================================
 
     @opscore.group(name="docs", invoke_without_command=True)
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def opscore_docs(self, ctx: commands.Context) -> None:
         """View Ops Core operational documentation."""
         embed = discord.Embed(
@@ -526,7 +526,7 @@ class OpsCore(commands.Cog):
         await ctx.send(embed=embed)
 
     @opscore_docs.command(name="core")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def docs_core(self, ctx: commands.Context) -> None:
         """Show the Core Ops Core setup guide."""
         setup_embed = discord.Embed(
@@ -558,7 +558,7 @@ class OpsCore(commands.Cog):
         await ctx.send(embed=setup_embed)
 
     @opscore_docs.command(name="approval")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def docs_approval(self, ctx: commands.Context) -> None:
         """Show the Approval Queue workflow and setup guide."""
         setup_embed = discord.Embed(
@@ -603,7 +603,7 @@ class OpsCore(commands.Cog):
         await ctx.send(embeds=[setup_embed, flow_embed])
 
     @opscore_docs.command(name="ticket")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def docs_ticket(self, ctx: commands.Context) -> None:
         """Show the Ticket System workflow and setup guide."""
         setup_embed = discord.Embed(
@@ -648,7 +648,7 @@ class OpsCore(commands.Cog):
         await ctx.send(embeds=[setup_embed, flow_embed])
 
     @opscore_docs.command(name="quarantine")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def docs_quarantine(self, ctx: commands.Context) -> None:
         """Show the Quarantine workflow and setup guide."""
         setup_embed = discord.Embed(
@@ -726,7 +726,7 @@ class OpsCore(commands.Cog):
             await ctx.send(f"```json\n{dumped}\n```")
 
     @opscore_debug.command(name="config")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def debug_config(self, ctx: commands.Context) -> None:
         """Display the current guild configuration for Ops Core."""
         guild_data = await self.config.guild(ctx.guild).all()
@@ -748,7 +748,7 @@ class OpsCore(commands.Cog):
             await ctx.send(embed=embed)
 
     @opscore_debug.command(name="version")
-    @commands.admin_or_permissions(administrator=True)
+    @commands.is_owner()
     async def debug_version(self, ctx: commands.Context) -> None:
         """Show the current Ops Core version."""
         await ctx.send(f"**{COG_NAME}** v{COG_VERSION}")
